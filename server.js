@@ -67,7 +67,9 @@ app.post('/api/simulate', (req, res) => {
     returnRate: Math.round(returnRate * 100) / 100,
     createdAt: new Date().toISOString()
   };
-  results.push(entry);
+  const existing = results.findIndex(r => r.nickname === nickname);
+  if (existing !== -1) results[existing] = entry;
+  else results.push(entry);
   writeDB(results);
 
   res.json({
