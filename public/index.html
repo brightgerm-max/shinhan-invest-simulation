@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신한은행 분산투자 시뮬레이션</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif; background: #F4F6FA; color: #222; min-height: 100vh; }
+
+/* Header */
+.header { background: #0046FF; color: #fff; text-align: center; padding: 24px 16px 16px; }
+.header h1 { font-size: 22px; font-weight: 700; }
+.header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+
+/* Screens */
+.screen { display: none; max-width: 600px; margin: 0 auto; padding: 24px 16px; }
+.screen.active { display: block; }
+
+/* Step 1: Nickname */
+#step-nickname { text-align: center; padding-top: 60px; }
+#step-nickname h2 { font-size: 20px; margin-bottom: 8px; }
+#step-nickname p { color: #666; margin-bottom: 24px; font-size: 14px; }
+#step-nickname input {
+  width: 100%; max-width: 300px; padding: 14px 16px; border: 2px solid #ddd;
+  border-radius: 12px; font-size: 16px; text-align: center; outline: none;
+  transition: border-color 0.2s;
+}
+#step-nickname input:focus { border-color: #0046FF; }
+
+/* Buttons */
+.btn {
+  display: inline-block; background: #0046FF; color: #fff; border: none;
+  padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 600;
+  cursor: pointer; margin-top: 16px; transition: background 0.2s;
+}
+.btn:hover { background: #0033CC; }
+.btn:disabled { background: #aaa; cursor: not-allowed; }
+
+/* Step 2: Allocation */
+#step-allocate h2 { font-size: 18px; margin-bottom: 4px; }
+.budget-bar {
+  background: #E8EDFB; border-radius: 10px; padding: 12px 16px;
+  margin: 12px 0 20px; display: flex; justify-content: space-between; align-items: center;
+}
+.budget-bar .amount { font-size: 20px; font-weight: 700; color: #0046FF; }
+.budget-bar .remain { font-size: 14px; color: #666; }
+.remain.over { color: #E53935; font-weight: 600; }
+
+.asset-list { list-style: none; }
+.asset-item {
+  background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.asset-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.asset-name { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.asset-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.asset-category { font-size: 12px; color: #999; }
+.asset-pct { font-size: 18px; font-weight: 700; color: #0046FF; min-width: 50px; text-align: right; }
+.asset-item input[type=range] {
+  width: 100%; -webkit-appearance: none; height: 6px; border-radius: 3px;
+  background: #E8EDFB; outline: none;
+}
+.asset-item input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+  background: #0046FF; cursor: pointer; border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+/* Step 3: Result */
+#step-result h2 { text-align: center; font-size: 18px; margin-bottom: 16px; }
+.result-card {
+  background: #fff; border-radius: 16px; padding: 24px; text-align: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px;
+}
+.result-card .final { font-size: 32px; font-weight: 800; color: #0046FF; }
+.result-card .rate { font-size: 16px; margin-top: 4px; }
+.rate.positive { color: #E53935; }
+.rate.negative { color: #1E88E5; }
+.result-card .start { font-size: 13px; color: #999; margin-top: 4px; }
+
+.chart-wrap {
+  background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+.chart-wrap h3 { font-size: 14px; margin-bottom: 12px; color: #666; }
+canvas { width: 100% !important; height: 220px !important; }
+
+.lesson-box {
+  background: linear-gradient(135deg, #E8EDFB, #F0F4FF); border-radius: 12px;
+  padding: 20px; margin-bottom: 20px; border-left: 4px solid #0046FF;
+}
+.lesson-box h3 { font-size: 15px; margin-bottom: 8px; color: #0046FF; }
+.lesson-box p { font-size: 13px; color: #555; line-height: 1.6; }
+
+/* Step 4: Ranking */
+#step-ranking h2 { text-align: center; font-size: 18px; margin-bottom: 16px; }
+.rank-table {
+  width: 100%; border-collapse: collapse; background: #fff;
+  border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+.rank-table th {
+  background: #0046FF; color: #fff; padding: 12px 8px; font-size: 13px;
+  font-weight: 600; text-align: center;
+}
+.rank-table td { padding: 12px 8px; text-align: center; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+.rank-table tr:last-child td { border-bottom: none; }
+.rank-table .rank-1 { background: #FFF8E1; }
+.rank-table .rank-2 { background: #F5F5F5; }
+.rank-table .rank-3 { background: #FBE9E7; }
+.rank-medal { font-size: 18px; }
+
+.btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+.btn-outline {
+  background: #fff; color: #0046FF; border: 2px solid #0046FF;
+  border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-group .btn, .btn-group .btn-outline {
+  flex: 1; max-width: 200px; text-align: center;
+  padding: 14px 0; font-size: 15px; margin-top: 0;
+}
+.btn-outline:hover { background: #E8EDFB; }
+
+.disclaimer { text-align: center; font-size: 11px; color: #aaa; margin-top: 32px; padding-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>신한은행 분산투자 시뮬레이션</h1>
+  <p>2010~2020 과거 시장 데이터 기반 가상 투자 체험</p>
+</div>
+
+<!-- Step 1: 닉네임 -->
+<div id="step-nickname" class="screen active">
+  <h2>환영합니다!</h2>
+  <p>닉네임을 입력하고 가상 100만원으로<br>나만의 투자 전략을 시작하세요.</p>
+  <input type="text" id="nickname-input" placeholder="닉네임 입력" maxlength="12">
+  <br>
+  <button class="btn" id="btn-start" disabled>시작하기</button>
+</div>
+
+<!-- Step 2: 자산 배분 -->
+<div id="step-allocate" class="screen">
+  <h2><span id="user-name"></span>님의 포트폴리오</h2>
+  <div class="budget-bar">
+    <div class="amount">1,000,000원</div>
+    <div class="remain" id="remain-pct">남은 비율: 100%</div>
+  </div>
+  <ul class="asset-list" id="asset-list"></ul>
+  <div style="text-align:center">
+    <button class="btn" id="btn-simulate" disabled>시뮬레이션 시작</button>
+  </div>
+</div>
+
+<!-- Step 3: 결과 -->
+<div id="step-result" class="screen">
+  <h2>10년 투자 결과</h2>
+  <div class="result-card">
+    <div class="start">시작 금액: 1,000,000원</div>
+    <div class="final" id="result-final"></div>
+    <div class="rate" id="result-rate"></div>
+  </div>
+  <div class="chart-wrap">
+    <h3>연도별 자산 변화</h3>
+    <canvas id="chart"></canvas>
+  </div>
+  <div class="lesson-box" id="lesson-box">
+    <h3>분산투자 인사이트</h3>
+    <p id="lesson-text"></p>
+  </div>
+  <div class="btn-group">
+    <button class="btn" id="btn-ranking">순위표 보기</button>
+    <button class="btn-outline" id="btn-retry">다시 도전하기</button>
+  </div>
+</div>
+
+<!-- Step 4: 순위표 -->
+<div id="step-ranking" class="screen">
+  <h2>수익률 순위표</h2>
+  <table class="rank-table">
+    <thead><tr><th>순위</th><th>닉네임</th><th>최종 금액</th><th>수익률</th></tr></thead>
+    <tbody id="rank-body"></tbody>
+  </table>
+  <div class="btn-group">
+    <button class="btn-outline" id="btn-back-result">내 결과 보기</button>
+    <button class="btn-outline" id="btn-retry2">다시 도전하기</button>
+  </div>
+</div>
+
+<div class="disclaimer">
+  * 본 시뮬레이션은 교육 목적으로 제작되었으며, 실제 투자 수익을 보장하지 않습니다.<br>
+  과거 수익률이 미래 수익률을 보장하지 않습니다.
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let assets = [];
+let alloc = {};
+let currentResult = null;
+
+// --- Navigation ---
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+// --- Step 1: Nickname ---
+const nickInput = $('nickname-input');
+const btnStart = $('btn-start');
+nickInput.addEventListener('input', () => {
+  btnStart.disabled = !nickInput.value.trim();
+});
+nickInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && nickInput.value.trim()) startGame();
+});
+btnStart.addEventListener('click', startGame);
+
+async function startGame() {
+  $('user-name').textContent = nickInput.value.trim();
+  const res = await fetch('/api/assets');
+  assets = await res.json();
+  renderAssets();
+  showScreen('step-allocate');
+}
+
+// --- Step 2: Allocation ---
+function renderAssets() {
+  const list = $('asset-list');
+  list.innerHTML = '';
+  alloc = {};
+  assets.forEach(a => {
+    alloc[a.id] = 0;
+    const li = document.createElement('li');
+    li.className = 'asset-item';
+    li.innerHTML = `
+      <div class="asset-header">
+        <div>
+          <div class="asset-name"><span class="asset-dot" style="background:${a.color}"></span>${a.name}</div>
+          <div class="asset-category">${a.category}</div>
+        </div>
+        <div class="asset-pct" id="pct-${a.id}">0%</div>
+      </div>
+      <input type="range" min="0" max="100" step="5" value="0" id="slider-${a.id}" data-id="${a.id}">
+    `;
+    list.appendChild(li);
+  });
+
+  list.querySelectorAll('input[type=range]').forEach(slider => {
+    slider.addEventListener('input', e => {
+      const id = e.target.dataset.id;
+      alloc[id] = parseInt(e.target.value);
+      $('pct-' + id).textContent = alloc[id] + '%';
+      updateRemain();
+    });
+  });
+  updateRemain();
+}
+
+function updateRemain() {
+  const total = Object.values(alloc).reduce((s, v) => s + v, 0);
+  const remain = 100 - total;
+  const el = $('remain-pct');
+  el.textContent = remain >= 0 ? `남은 비율: ${remain}%` : `초과: ${Math.abs(remain)}%`;
+  el.className = 'remain' + (remain < 0 ? ' over' : '');
+  $('btn-simulate').disabled = total !== 100;
+}
+
+$('btn-simulate').addEventListener('click', runSimulation);
+
+async function runSimulation() {
+  $('btn-simulate').disabled = true;
+  $('btn-simulate').textContent = '계산 중...';
+
+  const res = await fetch('/api/simulate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nickname: nickInput.value.trim(), allocation: alloc })
+  });
+
+  currentResult = await res.json();
+  showScreen('step-result');
+  renderResult();
+  $('btn-simulate').disabled = false;
+  $('btn-simulate').textContent = '시뮬레이션 시작';
+}
+
+// --- Step 3: Result ---
+function renderResult() {
+  const r = currentResult;
+  $('result-final').textContent = r.finalAmount.toLocaleString() + '원';
+  const rateEl = $('result-rate');
+  rateEl.textContent = (r.returnRate >= 0 ? '+' : '') + r.returnRate + '%';
+  rateEl.className = 'rate ' + (r.returnRate >= 0 ? 'positive' : 'negative');
+
+  // Lesson
+  const usedCount = Object.values(alloc).filter(v => v > 0).length;
+  const maxPct = Math.max(...Object.values(alloc));
+  let lesson = '';
+  if (usedCount === 1) {
+    lesson = '한 종목에 100% 집중 투자하셨네요. 집중 투자는 높은 수익을 낼 수도 있지만, 그만큼 큰 손실 위험도 있습니다. 여러 자산에 분산하면 위험을 줄이면서도 안정적인 수익을 기대할 수 있습니다.';
+  } else if (usedCount <= 3 && maxPct >= 60) {
+    lesson = '일부 자산에 비중이 집중되어 있습니다. 분산투자의 핵심은 서로 다른 성격의 자산(주식, 채권, 원자재 등)에 골고루 투자하는 것입니다. 상관관계가 낮은 자산끼리 조합하면 위험 대비 수익률이 개선됩니다.';
+  } else {
+    lesson = '다양한 자산에 분산 투자하셨습니다! 분산투자는 개별 자산의 급락 위험을 줄이고, 장기적으로 안정적인 수익을 추구하는 전략입니다. 완벽한 타이밍을 맞추는 것보다 꾸준한 분산이 더 효과적입니다.';
+  }
+  $('lesson-text').textContent = lesson;
+
+  drawChart(r.years);
+}
+
+function drawChart(years) {
+  const canvas = $('chart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 220 * dpr;
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 220;
+  const pad = { top: 20, right: 16, bottom: 30, left: 60 };
+  const cw = W - pad.left - pad.right;
+  const ch = H - pad.top - pad.bottom;
+
+  const amounts = years.map(y => y.amount);
+  const minA = Math.min(1000000, ...amounts) * 0.9;
+  const maxA = Math.max(...amounts) * 1.1;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#eee';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (ch / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    const val = maxA - (maxA - minA) * (i / 4);
+    ctx.fillStyle = '#999'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(Math.round(val / 10000) + '만', pad.left - 6, y + 4);
+  }
+
+  // Base line at 100만
+  const baseY = pad.top + ch * (1 - (1000000 - minA) / (maxA - minA));
+  ctx.strokeStyle = '#ccc'; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(pad.left, baseY); ctx.lineTo(W - pad.right, baseY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Line + area
+  const points = years.map((y, i) => ({
+    x: pad.left + (cw / (years.length - 1)) * i,
+    y: pad.top + ch * (1 - (y.amount - minA) / (maxA - minA))
+  }));
+
+  // Area
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, baseY);
+  points.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(points[points.length - 1].x, baseY);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
+  grad.addColorStop(0, 'rgba(0,70,255,0.15)');
+  grad.addColorStop(1, 'rgba(0,70,255,0.01)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = '#0046FF'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke();
+
+  // Dots
+  points.forEach(p => {
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#0046FF'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  });
+
+  // X labels
+  ctx.fillStyle = '#999'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  years.forEach((y, i) => {
+    ctx.fillText(y.year, points[i].x, H - pad.bottom + 18);
+  });
+}
+
+// --- Step 4: Ranking ---
+$('btn-ranking').addEventListener('click', loadRanking);
+
+async function loadRanking() {
+  const res = await fetch('/api/ranking');
+  const data = await res.json();
+  const body = $('rank-body');
+  const medals = ['', '\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'];
+  body.innerHTML = data.map(r => {
+    const cls = r.rank <= 3 ? ` class="rank-${r.rank}"` : '';
+    const medal = r.rank <= 3 ? `<span class="rank-medal">${medals[r.rank]}</span>` : r.rank;
+    return `<tr${cls}>
+      <td>${medal}</td>
+      <td>${escapeHtml(r.nickname)}</td>
+      <td>${r.finalAmount.toLocaleString()}원</td>
+      <td style="color:${r.returnRate >= 0 ? '#E53935' : '#1E88E5'};font-weight:600">${r.returnRate >= 0 ? '+' : ''}${r.returnRate}%</td>
+    </tr>`;
+  }).join('');
+  showScreen('step-ranking');
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// --- Retry ---
+$('btn-retry').addEventListener('click', retry);
+$('btn-retry2').addEventListener('click', retry);
+$('btn-back-result').addEventListener('click', () => showScreen('step-result'));
+
+function retry() {
+  renderAssets();
+  showScreen('step-allocate');
+}
+
+// Resize chart on window resize
+window.addEventListener('resize', () => {
+  if (currentResult) drawChart(currentResult.years);
+});
+</script>
+</body>
+</html>
