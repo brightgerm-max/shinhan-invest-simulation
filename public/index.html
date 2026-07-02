@@ -57,14 +57,21 @@ body { font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif; ba
 .asset-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .asset-category { font-size: 12px; color: #999; }
 .asset-pct { font-size: 18px; font-weight: 700; color: #0046FF; min-width: 50px; text-align: right; }
-.asset-item input[type=range] {
-  width: 100%; -webkit-appearance: none; height: 6px; border-radius: 3px;
-  background: #E8EDFB; outline: none;
+.custom-slider {
+  position: relative; width: 100%; height: 32px; touch-action: none; user-select: none;
 }
-.asset-item input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
-  background: #0046FF; cursor: pointer; border: 3px solid #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+.slider-track {
+  position: absolute; top: 50%; left: 0; right: 0; height: 6px;
+  transform: translateY(-50%); background: #E8EDFB; border-radius: 3px;
+}
+.slider-fill {
+  height: 100%; width: 0%; background: #0046FF; border-radius: 3px;
+}
+.slider-thumb {
+  position: absolute; top: 50%; left: 0%; width: 26px; height: 26px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: #0046FF; border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2); cursor: pointer;
 }
 
 /* Step 3: Result */
@@ -241,18 +248,43 @@ function renderAssets() {
         </div>
         <div class="asset-pct" id="pct-${a.id}">0%</div>
       </div>
-      <input type="range" min="0" max="100" step="5" value="0" id="slider-${a.id}" data-id="${a.id}">
+      <div class="custom-slider" id="slider-${a.id}" data-id="${a.id}">
+        <div class="slider-track"><div class="slider-fill"></div></div>
+        <div class="slider-thumb"></div>
+      </div>
     `;
     list.appendChild(li);
   });
 
-  list.querySelectorAll('input[type=range]').forEach(slider => {
-    slider.addEventListener('input', e => {
-      const id = e.target.dataset.id;
-      alloc[id] = parseInt(e.target.value);
-      $('pct-' + id).textContent = alloc[id] + '%';
+  // ponytail: custom slider — only moves when thumb is touched directly
+  list.querySelectorAll('.custom-slider').forEach(slider => {
+    const thumb = slider.querySelector('.slider-thumb');
+    const fill = slider.querySelector('.slider-fill');
+    const id = slider.dataset.id;
+    let dragging = false;
+
+    function setValue(clientX) {
+      const rect = slider.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const val = Math.round(ratio * 20) * 5; // step 5
+      alloc[id] = val;
+      thumb.style.left = (val / 100 * 100) + '%';
+      fill.style.width = (val / 100 * 100) + '%';
+      $('pct-' + id).textContent = val + '%';
       updateRemain();
-    });
+    }
+
+    thumb.addEventListener('touchstart', e => { dragging = true; e.preventDefault(); }, { passive: false });
+    thumb.addEventListener('mousedown', e => { dragging = true; e.preventDefault(); });
+
+    document.addEventListener('touchmove', e => { if (dragging) setValue(e.touches[0].clientX); }, { passive: true });
+    document.addEventListener('mousemove', e => { if (dragging) setValue(e.clientX); });
+
+    document.addEventListener('touchend', () => { dragging = false; });
+    document.addEventListener('mouseup', () => { dragging = false; });
+
+    // clicking on track also works
+    slider.addEventListener('click', e => { if (e.target !== thumb) setValue(e.clientX); });
   });
   updateRemain();
 }
