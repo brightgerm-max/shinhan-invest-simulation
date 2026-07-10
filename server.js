@@ -95,5 +95,12 @@ app.get('/api/ranking', (req, res) => {
   })));
 });
 
+// ponytail: 관리자 초기화 — /api/reset?key=shinhan
+app.delete('/api/reset', (req, res) => {
+  if (req.query.key !== 'shinhan') return res.status(403).json({ error: '키가 틀립니다.' });
+  writeDB([]);
+  res.json({ ok: true, message: '순위표가 초기화되었습니다.' });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
