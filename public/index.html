@@ -146,6 +146,13 @@ canvas { width: 100% !important; height: 220px !important; }
 .portfolio-pct { font-size: 16px; font-weight: 700; color: #0046FF; }
 .rank-nickname { color: #0046FF; cursor: pointer; text-decoration: underline; font-weight: 600; }
 
+.btn-reset {
+  display: block; margin: 0 auto 16px; padding: 10px 24px;
+  background: #E53935; color: #fff; border: none; border-radius: 8px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.btn-reset:hover { background: #C62828; }
+
 .disclaimer { text-align: center; font-size: 11px; color: #aaa; margin-top: 32px; padding-bottom: 20px; }
 </style>
 </head>
@@ -202,7 +209,8 @@ canvas { width: 100% !important; height: 220px !important; }
 
 <!-- Step 4: 순위표 -->
 <div id="step-ranking" class="screen">
-  <h2>수익률 순위표</h2>
+  <h2 id="ranking-title">수익률 순위표</h2>
+  <button class="btn-reset" id="btn-reset" style="display:none">순위 초기화</button>
   <table class="rank-table">
     <thead><tr><th>순위</th><th>닉네임</th><th>최종 금액</th><th>수익률</th></tr></thead>
     <tbody id="rank-body"></tbody>
@@ -444,6 +452,25 @@ function drawChart(years) {
 }
 
 // --- Step 4: Ranking ---
+// ponytail: 제목 5번 클릭 → 초기화 버튼 토글
+let tapCount = 0; let tapTimer = null;
+$('ranking-title').addEventListener('click', () => {
+  tapCount++;
+  clearTimeout(tapTimer);
+  tapTimer = setTimeout(() => { tapCount = 0; }, 2000);
+  if (tapCount >= 5) {
+    tapCount = 0;
+    const btn = $('btn-reset');
+    btn.style.display = btn.style.display === 'none' ? 'block' : 'none';
+  }
+});
+$('btn-reset').addEventListener('click', async () => {
+  if (!confirm('순위표를 초기화할까요?')) return;
+  await fetch('/api/reset?key=shinhan', { method: 'DELETE' });
+  loadRanking();
+  $('btn-reset').style.display = 'none';
+});
+
 $('btn-ranking').addEventListener('click', loadRanking);
 
 let rankingData = [];
