@@ -6,7 +6,8 @@
       "Bash(curl -s http://localhost:3000/api/assets)",
       "Bash(start:*)",
       "Bash(gh auth:*)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(node -e \":*)"
     ]
   }
 }
